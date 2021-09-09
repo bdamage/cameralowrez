@@ -12,6 +12,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.view.Window
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -35,7 +37,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         setContentView(R.layout.activity_main)
+
+        this.window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
+
+        window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
+
+
+
+
 
 
         if(ContextCompat.checkSelfPermission(this.applicationContext,Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -52,6 +68,8 @@ class MainActivity : AppCompatActivity() {
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 500)
 
         }
+
+
 
         // Create an instance of Camera
         mCamera = getCameraInstance()
@@ -72,7 +90,22 @@ class MainActivity : AppCompatActivity() {
             mCamera?.takePicture(null, null, mPicture)
         }
 
-      //  mCamera?.takePicture(null, null, mPicture)
+        val flashButton: Button = findViewById(R.id.buttonFlash)
+        flashButton.setOnClickListener {
+
+            val params: Camera.Parameters? = mCamera?.parameters
+
+            Log.d(TAG, "flash mode: "+params!!.flashMode)
+            if(params!!.flashMode != Camera.Parameters.FLASH_MODE_OFF)
+                params?.flashMode = Camera.Parameters.FLASH_MODE_OFF
+            else
+                params?.flashMode = Camera.Parameters.FLASH_MODE_TORCH
+
+            mCamera?.parameters = params
+
+        }
+
+
     }
 
 

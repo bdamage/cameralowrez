@@ -30,7 +30,8 @@ class CameraPreview(
                 //val parameters: Camera.Parameters = mCamera.getParameters()
                 // mCamera.parameters.setPictureSize (100,100)
                  val params: Camera.Parameters? = mCamera?.parameters
-                 params?.focusMode = Camera.Parameters.FOCUS_MODE_AUTO
+                 params?.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
+                 params?.flashMode = Camera.Parameters.FLASH_MODE_TORCH
 
                  mCamera?.parameters = params
 
@@ -90,7 +91,11 @@ class CameraPreview(
         // start preview with new settings
         mCamera.apply {
             try {
+                val params: Camera.Parameters? = mCamera?.parameters
+                params?.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
+                params?.flashMode = Camera.Parameters.FLASH_MODE_TORCH
 
+                mCamera?.parameters = params
                 setPreviewDisplay(mHolder)
                 startPreview()
             } catch (e: Exception) {
