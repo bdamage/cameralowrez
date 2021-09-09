@@ -31,7 +31,7 @@ class CameraPreview(
                 // mCamera.parameters.setPictureSize (100,100)
                  val params: Camera.Parameters? = mCamera?.parameters
                  params?.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
-                 params?.flashMode = Camera.Parameters.FLASH_MODE_TORCH
+                 params?.flashMode = Camera.Parameters.FLASH_MODE_AUTO
 
                  mCamera?.parameters = params
 
@@ -93,7 +93,7 @@ class CameraPreview(
             try {
                 val params: Camera.Parameters? = mCamera?.parameters
                 params?.focusMode = Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE
-                params?.flashMode = Camera.Parameters.FLASH_MODE_TORCH
+                params?.flashMode = Camera.Parameters.FLASH_MODE_AUTO
 
                 mCamera?.parameters = params
                 setPreviewDisplay(mHolder)

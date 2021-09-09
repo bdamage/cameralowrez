@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Paint
+import android.graphics.drawable.Drawable
 import android.hardware.Camera
 import android.net.Uri
 import android.os.Bundle
@@ -85,26 +87,34 @@ class MainActivity : AppCompatActivity() {
             preview.addView(it)
         }
         val captureButton: Button = findViewById(R.id.button_capture)
+
+
+        captureButton.background =  getDrawable(R.drawable.ic_record_alt)
+
         captureButton.setOnClickListener {
             // get an image from the camera
             mCamera?.takePicture(null, null, mPicture)
         }
 
         val flashButton: Button = findViewById(R.id.buttonFlash)
+
+        flashButton.foreground = getDrawable(R.drawable.ic_auto_flash)
+
         flashButton.setOnClickListener {
 
             val params: Camera.Parameters? = mCamera?.parameters
 
             Log.d(TAG, "flash mode: "+params!!.flashMode)
-            if(params!!.flashMode != Camera.Parameters.FLASH_MODE_OFF)
+            if(params!!.flashMode != Camera.Parameters.FLASH_MODE_OFF) {
                 params?.flashMode = Camera.Parameters.FLASH_MODE_OFF
-            else
+                flashButton.foreground = getDrawable(R.drawable.ic_no_flash)
+            } else {
                 params?.flashMode = Camera.Parameters.FLASH_MODE_TORCH
-
+                flashButton.foreground = getDrawable(R.drawable.ic_flash)
+            }
             mCamera?.parameters = params
 
         }
-
 
     }
 
