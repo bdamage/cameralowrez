@@ -8,6 +8,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.hardware.Camera
 import android.net.Uri
 import android.os.Bundle
@@ -38,11 +39,10 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
     var mPictureHeight: Int = 1920;
     var mPictureQuality: Int = 80;
     var mPictureUseAspectRatio : Boolean = true;
+    var mRotateImage : Boolean = true;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
         setContentView(R.layout.activity_main)
 
         this.window.setFlags(
@@ -55,7 +55,6 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
 
         if(ContextCompat.checkSelfPermission(this.applicationContext, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.CAMERA), 500)
-
         }
 
         if(ContextCompat.checkSelfPermission(
@@ -71,7 +70,6 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
             ) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 500)
         }
-
 
         mRemoteConfig = RemoteIntentConfig(this)
 
@@ -89,8 +87,6 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
             preview.addView(it)
         }
         val captureButton: Button = findViewById(R.id.button_capture)
-
-
         captureButton.background =  getDrawable(R.drawable.ic_record_alt)
 
         captureButton.setOnClickListener {
@@ -99,9 +95,7 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
         }
 
         val flashButton: Button = findViewById(R.id.buttonFlash)
-
         flashButton.foreground = getDrawable(R.drawable.ic_auto_flash)
-
         flashButton.setOnClickListener {
 
             val params: Camera.Parameters? = mCamera?.parameters
@@ -117,10 +111,7 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
             mCamera?.parameters = params
 
         }
-
-
     }
-
 
     override fun onDestroy() {
         super.onDestroy()
@@ -151,8 +142,6 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
         // Get the dimensions of the View
         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         val b: Bitmap = BitmapFactory.decodeFile(path)
-
-
         val width = mPictureWidth
         var height = mPictureHeight
 
@@ -160,10 +149,15 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
             val aspectRatio: Float = b.getWidth().toFloat() / b.getHeight().toFloat()
             height = Math.round(width / aspectRatio)
         }
-        val out: Bitmap = Bitmap.createScaledBitmap(
-            b, width, height, false
+        val scaledBitmap: Bitmap = Bitmap.createScaledBitmap(
+            b, width, height, true
         )
-        //  val out: Bitmap = Bitmap.createScaledBitmap(b, 320, 480, false)
+        var rotatedBitmap = scaledBitmap;
+        if(mRotateImage) {
+            val matrix : Matrix = Matrix()
+            matrix.postRotate(90.0f)
+            rotatedBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true)
+        }
 
         val file = File(dir, filename)
 
@@ -172,11 +166,12 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
         val fOut: FileOutputStream
         try {
             fOut = FileOutputStream(file)
-            out.compress(Bitmap.CompressFormat.JPEG, mPictureQuality, fOut)
+            rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, mPictureQuality, fOut)
             fOut.flush()
             fOut.close()
             b.recycle()
-            out.recycle()
+            scaledBitmap.recycle()
+            rotatedBitmap.recycle()
         } catch (e: java.lang.Exception) {
             println(e.toString())
         }
@@ -277,7 +272,12 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
 
         val AspectRatio = intent!!.getStringExtra("aspectratio")
         if (AspectRatio.isNullOrEmpty() == false)
-            mPictureUseAspectRatio =  AspectRatio.toBoolean()
+            mPictureUseAspectRatio = AspectRatio.toBoolean()
+
+
+        val rotate = intent!!.getStringExtra("rotate")
+        if (rotate.isNullOrEmpty() == false)
+            mRotateImage = rotate.toBoolean()
 
         appSettingsSave()
     }
@@ -291,6 +291,7 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
         editor.putInt("width", mPictureWidth);
         editor.putInt("quality", mPictureQuality);
         editor.putBoolean("aspectratio", mPictureUseAspectRatio);
+        editor.putBoolean("rotate", mRotateImage);
 
         editor.commit()
     }
@@ -303,6 +304,7 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
         mPictureHeight = sharedPref.getInt("height", 1980);
         mPictureQuality = sharedPref.getInt("quality", 80);
         mPictureUseAspectRatio = sharedPref.getBoolean("aspectratio", true);
+        mRotateImage = sharedPref.getBoolean("rotate", true);
 
     }
 
