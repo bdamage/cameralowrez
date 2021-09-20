@@ -51,11 +51,6 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
 
-
-
-
-
-
         if(ContextCompat.checkSelfPermission(this.applicationContext,Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.CAMERA), 500)
 
@@ -147,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         val b: Bitmap = BitmapFactory.decodeFile(path)
 
         val aspectRatio: Float = b.getWidth().toFloat() / b.getHeight().toFloat()
-        val width = 720
+        val width = 1440
         val height = Math.round(width / aspectRatio)
 
         val out: Bitmap = Bitmap.createScaledBitmap(
