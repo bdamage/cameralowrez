@@ -4,17 +4,15 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Paint
-import android.graphics.drawable.Drawable
 import android.hardware.Camera
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
-import android.view.Window
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
@@ -29,13 +27,17 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 
-class MainActivity : AppCompatActivity() {
-
-    private var mCamera: Camera? = null
-    private var mPreview: CameraPreview? = null
-   // private var mediaRecorder: MediaRecorder?
+class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity() {
 
     private var TAG: String = "CUSTOMCAMERA"
+    private var mCamera: Camera? = null
+    private var mPreview: CameraPreview? = null
+    private var mRemoteConfig : RemoteIntentConfig? = null
+
+    var mPictureWidth : Int = 1440;
+    var mPictureHeight: Int = 1920;
+    var mPictureQuality: Int = 80;
+    var mPictureUseAspectRatio : Boolean = true;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,22 +53,27 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN)
 
-        if(ContextCompat.checkSelfPermission(this.applicationContext,Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        if(ContextCompat.checkSelfPermission(this.applicationContext, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.CAMERA), 500)
 
         }
 
-        if(ContextCompat.checkSelfPermission(this.applicationContext,Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        if(ContextCompat.checkSelfPermission(
+                this.applicationContext,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 500)
-
         }
 
-        if(ContextCompat.checkSelfPermission(this.applicationContext,Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+        if(ContextCompat.checkSelfPermission(
+                this.applicationContext,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 500)
-
         }
 
 
+        mRemoteConfig = RemoteIntentConfig(this)
 
         // Create an instance of Camera
         mCamera = getCameraInstance()
@@ -99,7 +106,7 @@ class MainActivity : AppCompatActivity() {
 
             val params: Camera.Parameters? = mCamera?.parameters
 
-            Log.d(TAG, "flash mode: "+params!!.flashMode)
+            Log.d(TAG, "flash mode: " + params!!.flashMode)
             if(params!!.flashMode != Camera.Parameters.FLASH_MODE_OFF) {
                 params?.flashMode = Camera.Parameters.FLASH_MODE_OFF
                 flashButton.foreground = getDrawable(R.drawable.ic_no_flash)
@@ -111,17 +118,21 @@ class MainActivity : AppCompatActivity() {
 
         }
 
+
     }
 
 
     override fun onDestroy() {
         super.onDestroy()
+        appSettingsSave();
+        mRemoteConfig!!.unregisterReceiver()
         //mCamera?.stopPreview()
         //releaseCamera() // release the camera immediately on pause event
     }
 
     override fun onResume() {
         super.onResume()
+        appSettingsLoad();
 
     }
 
@@ -136,17 +147,22 @@ class MainActivity : AppCompatActivity() {
         mCamera?.release() // release the camera for other applications
         mCamera = null
     }
-    private fun setPic(path : String, filename : String) {
+    private fun setPic(path: String, filename: String) {
         // Get the dimensions of the View
         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         val b: Bitmap = BitmapFactory.decodeFile(path)
 
-        val aspectRatio: Float = b.getWidth().toFloat() / b.getHeight().toFloat()
-        val width = 1440
-        val height = Math.round(width / aspectRatio)
 
+        val width = mPictureWidth
+        var height = mPictureHeight
+
+        if(mPictureUseAspectRatio) {
+            val aspectRatio: Float = b.getWidth().toFloat() / b.getHeight().toFloat()
+            height = Math.round(width / aspectRatio)
+        }
         val out: Bitmap = Bitmap.createScaledBitmap(
-                b, width, height, false)
+            b, width, height, false
+        )
         //  val out: Bitmap = Bitmap.createScaledBitmap(b, 320, 480, false)
 
         val file = File(dir, filename)
@@ -156,7 +172,7 @@ class MainActivity : AppCompatActivity() {
         val fOut: FileOutputStream
         try {
             fOut = FileOutputStream(file)
-            out.compress(Bitmap.CompressFormat.PNG, 80, fOut)
+            out.compress(Bitmap.CompressFormat.JPEG, mPictureQuality, fOut)
             fOut.flush()
             fOut.close()
             b.recycle()
@@ -183,12 +199,12 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "Error accessing file: ${e.message}")
         }
 
-        setPic(""+pictureFile.absoluteFile, ""+pictureFile.name)
+        setPic("" + pictureFile.absoluteFile, "" + pictureFile.name)
 
         val returnIntent = Intent()
 
-        returnIntent.putExtra("output", ""+pictureFile.absoluteFile)
-        returnIntent.putExtra("PhotoPath", ""+pictureFile.absoluteFile)
+        returnIntent.putExtra("output", "" + pictureFile.absoluteFile)
+        returnIntent.putExtra("PhotoPath", "" + pictureFile.absoluteFile)
         var myUri : Uri = pictureFile.toUri()
         returnIntent.setData(myUri)
         setResult(Activity.RESULT_OK, returnIntent)
@@ -229,7 +245,7 @@ class MainActivity : AppCompatActivity() {
     /** Create a File for saving an image or video */
     private fun getOutputMediaFile(type: Int): File? {
 
-        val mediaStorageDir = File(""+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES))
+        val mediaStorageDir = File("" + Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES))
 
         // Create a media file name
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
@@ -243,4 +259,52 @@ class MainActivity : AppCompatActivity() {
             else -> null
         }
     }
+
+    override fun onRemoteConfigEvent(intent: Intent?) {
+        Log.d(TAG, "onRemoteConfigEvent")
+
+        val width = intent!!.getStringExtra("width")
+        if (width.isNullOrEmpty() == false)
+            mPictureWidth =  width.toInt()
+
+        val height = intent!!.getStringExtra("height")
+        if(height.isNullOrEmpty()==false)
+            mPictureHeight =  height.toInt()
+
+        val quality = intent!!.getStringExtra("quality")
+        if (quality.isNullOrEmpty() == false)
+            mPictureQuality =  quality.toInt()
+
+        val AspectRatio = intent!!.getStringExtra("aspectratio")
+        if (AspectRatio.isNullOrEmpty() == false)
+            mPictureUseAspectRatio =  AspectRatio.toBoolean()
+
+        appSettingsSave()
+    }
+
+
+    private fun appSettingsSave() {
+        val sharedPref: SharedPreferences = getSharedPreferences("CAMERASETTINGS", MODE_PRIVATE)
+
+        val editor = sharedPref.edit()
+        editor.putInt("height", mPictureHeight);
+        editor.putInt("width", mPictureWidth);
+        editor.putInt("quality", mPictureQuality);
+        editor.putBoolean("aspectratio", mPictureUseAspectRatio);
+
+        editor.commit()
+    }
+
+
+    private fun appSettingsLoad() {
+        val sharedPref: SharedPreferences = getSharedPreferences("CAMERASETTINGS", MODE_PRIVATE)
+
+        mPictureWidth = sharedPref.getInt("width", 1440);
+        mPictureHeight = sharedPref.getInt("height", 1980);
+        mPictureQuality = sharedPref.getInt("quality", 80);
+        mPictureUseAspectRatio = sharedPref.getBoolean("aspectratio", true);
+
+    }
+
+
 }
