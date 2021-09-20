@@ -73,6 +73,13 @@ class MainActivity : RemoteIntentConfig.RemoteConfigListener, AppCompatActivity(
 
         mRemoteConfig = RemoteIntentConfig(this)
 
+
+        //Do we want to update the settings via startActivity?
+        val action = intent.action
+        if(action.equals(mRemoteConfig!!.APP_PACKAGE_NAME+mRemoteConfig!!.configRemote))
+            onRemoteConfigEvent(intent)
+
+
         // Create an instance of Camera
         mCamera = getCameraInstance()
 

@@ -9,6 +9,9 @@ import android.util.Log
 
 
 class RemoteIntentConfig(activity: Activity) : BroadcastReceiver() {
+    var APP_PACKAGE_NAME = "net.znordic.cameralowrez"
+    val configRemote = ".REMOTE_CONFIG"
+    
     var mContext: Context
     var mRemoteConfigEvent: RemoteConfigListener? = null
     fun unregisterReceiver() {
@@ -19,8 +22,8 @@ class RemoteIntentConfig(activity: Activity) : BroadcastReceiver() {
         val filter = IntentFilter()
         //com.zebra.webkiosk.REMOTE_CONFIG
         //com.zebra.webkiosk.REMOTE_CONFIG
-        filter.addAction(APP_PACKAGE_NAME + configRemoteUrl)
-        Log.d(TAG, "Register intent filter: " + APP_PACKAGE_NAME + configRemoteUrl)
+        filter.addAction(APP_PACKAGE_NAME + configRemote)
+        Log.d(TAG, "Register intent filter: " + APP_PACKAGE_NAME + configRemote)
         //  filter.addCategory("android.intent.category.DEFAULT");
         mContext.registerReceiver(this, filter)
     }
@@ -33,14 +36,13 @@ class RemoteIntentConfig(activity: Activity) : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         Log.d(TAG, "Action: $action")
-        if (action == APP_PACKAGE_NAME + configRemoteUrl)
+        if (action == APP_PACKAGE_NAME + configRemote)
             mRemoteConfigEvent!!.onRemoteConfigEvent(intent)
     }
 
     companion object {
         const val TAG = "RemoteIntentConfig"
-        var APP_PACKAGE_NAME = "net.znordic.cameralowrez"
-        const val configRemoteUrl = ".REMOTE_CONFIG"
+
     }
 
     init {
